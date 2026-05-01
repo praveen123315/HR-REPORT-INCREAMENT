@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Increment Report System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f0f5;
+        }
+
+        .upload-section input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .file-name {
+            margin-top: 15px;
+            font-size: 1em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .search-section {
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .employee-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .employee-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .employee-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .employee-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .employee-card .emp-code {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .employee-card .designation {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .employee-card .department {
+            color: #764ba2;
+            font-weight: 500;
+        }
+
+        .employee-card .increment-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.2em;
+        }
+
+        /* PDF Report Styles - Single A4 Page */
+        .pdf-report {
+            display: none;
+            width: 794px; /* A4 width at 96 DPI */
+            height: 1123px; /* A4 height at 96 DPI - FIXED, no overflow */
+            background: white;
+            padding: 24px 28px 20px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            font-size: 11px;
+        }
+
+        .pdf-header {
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .pdf-header h1 {
+            color: #667eea;
+            font-size: 1.4em;
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+
+        .pdf-header h2 {
+            color: #764ba2;
+            font-size: 1em;
+            margin-top: 3px;
+        }
+
+        .pdf-header p {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        /* Employee info row */
+        .pdf-emp-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            background: #f4f4fb;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border: 1px solid #e0e0f0;
+        }
+
+        .pdf-emp-info .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-emp-info .info-label {
+            font-size: 0.75em;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pdf-emp-info .info-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        /* Side-by-side salary comparison */
+        .pdf-compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .pdf-col-header {
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px 4px 0 0;
+            font-weight: bold;
+            font-size: 0.95em;
+            text-align: center;
+            margin-bottom: 0;
+        }
+
+        .pdf-col-header.old {
+            background: #5a6abf;
+        }
+
+        .pdf-col-header.new {
+            background: #2e7d32;
+        }
+
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .pdf-table th {
+            background: #f0f0f5;
+            padding: 5px 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-weight: bold;
+            color: #333;
+            font-size: 0.85em;
+        }
+
+        .pdf-table td {
+            padding: 4px 8px;
+            border: 1px solid #e0e0e0;
+            font-size: 0.85em;
+        }
+
+        .pdf-table td.amount {
+            text-align: right;
+        }
+
+        .pdf-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .highlight-row td {
+            background: #fff3cd !important;
+            font-weight: bold;
+        }
+
+        /* Increment summary bar */
+        .pdf-summary-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .pdf-summary-card {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border: 1px solid #a5d6a7;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+
+        .pdf-summary-card .sc-label {
+            font-size: 0.72em;
+            color: #2e7d32;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 600;
+        }
+
+        .pdf-summary-card .sc-value {
+            font-size: 1.05em;
+            font-weight: 700;
+            color: #1b5e20;
+            margin-top: 2px;
+        }
+
+        .pdf-footer {
+            position: absolute;
+            bottom: 14px;
+            left: 28px;
+            right: 28px;
+            text-align: center;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+            color: #999;
+            font-size: 0.78em;
+        }
+
+        .btn-download {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-download:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-close {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-close:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-content {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            position: relative;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .pdf-report, .pdf-report * {
+                visibility: visible;
+            }
+            .pdf-report {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 210mm;
+                height: 297mm;
+                padding: 14mm 16mm 12mm;
+                overflow: hidden;
+                page-break-after: avoid;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 HR Increment Report System</h1>
+            <p>Upload Employee Data & Generate Professional Reports</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="upload-section" id="uploadSection">
+                <h2 style="color: #667eea; margin-bottom: 20px;">📁 Upload HR Excel Sheet</h2>
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+                <label for="fileInput">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        Choose File
+                    </button>
+                </label>
+                <div class="file-name" id="fileName"></div>
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    Processing your file...
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="stats-section" id="statsSection">
+                <div class="stat-card">
+                    <h3 id="totalEmployees">0</h3>
+                    <p>Total Employees</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="avgIncrement">0%</h3>
+                    <p>Average Increment</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalIncrement">₹0</h3>
+                    <p>Total CTC Increase</p>
+                </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-section" id="searchSection">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Search by name, code, or department...">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+
+            <!-- Employee Grid -->
+            <div class="employee-grid" id="employeeGrid"></div>
+        </div>
+    </div>
+
+    <!-- Modal for PDF Report -->
+    <div class="modal" id="pdfModal">
+        <div class="modal-content">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn-download" onclick="downloadPDF()">📥 Download PDF</button>
+                <button class="btn-download" onclick="printPDF()">🖨️ Print</button>
+                <button class="btn-close" onclick="closeModal()">✖ Close</button>
+            </div>
+            <div class="pdf-report" id="pdfReport"></div>
+        </div>
+    </div>
+
+    <script>
+        let employeeData = [];
+        let allEmployees = [];
+
+        // File Upload Handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = `Selected: ${file.name}`;
+            document.getElementById('loading').style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, {type: 'array', cellDates: true});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, {raw: false});
+                    
+                    processEmployeeData(jsonData);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('searchSection').style.display = 'block';
+                    document.getElementById('statsSection').style.display = 'grid';
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                    document.getElementById('loading').style.display = 'none';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function processEmployeeData(data) {
+            employeeData = data.map(row => ({
+                srNo: row['SR NO'],
+                empCode: row['EMP CODE'],
+                name: row['EMPLOYEE NAME'],
+                doj: row['DATE OF JOINING (DOJ)'],
+                designation: row['DESIGNATION'],
+                department: row['DEPARTMENT'],
+                
+                // Old Salary Structure
+                oldBasicSalary: parseFloat(row['BASIC SALARY']) || 0,
+                oldGrossSalary: parseFloat(row['GROSS SALARY']) || 0,
+                oldActualSalary: parseFloat(row['ACTUAL SALARY']) || 0,
+                oldEmployerPF: parseFloat(row['EMPLOYER PF']) || 0,
+                oldEmployeePF: parseFloat(row['EMPLOYEE PF']) || 0,
+                oldESICEmployee: parseFloat(row['ESIC (EMPLOYEE)']) || 0,
+                oldESICEmployer: parseFloat(row['ESIC (EMPLOYER)']) || 0,
+                oldGratuity: parseFloat(row['GRATUITY']) || 0,
+                oldBonusGross: parseFloat(row['BONUS GROSS']) || 0,
+                oldEarnedLeave: parseFloat(row['EARNED LEAVE (EL)']) || 0,
+                oldTotalDeductions: parseFloat(row['TOTAL DEDUCTIONS']) || 0,
+                oldInHandSalary: parseFloat(row['IN-HAND SALARY']) || 0,
+                oldMonthlyCTC: parseFloat(row['EXISTING MONTHLY CTC']) || 0,
+                
+                // New Salary Structure (using column index 19+ for second set)
+                newBasicSalary: parseFloat(row['BASIC SALARY__1']) || parseFloat(Object.values(row)[19]) || 0,
+                newGrossSalary: parseFloat(row['GROSS SALARY__1']) || parseFloat(Object.values(row)[20]) || 0,
+                newEmployerPF: parseFloat(row['EMPLOYER PF__1']) || parseFloat(Object.values(row)[21]) || 0,
+                newEmployeePF: parseFloat(row['EMPLOYEE PF__1']) || parseFloat(Object.values(row)[22]) || 0,
+                newESICEmployee: parseFloat(row['ESIC (EMPLOYEE)__1']) || parseFloat(Object.values(row)[23]) || 0,
+                newESICEmployer: parseFloat(row['ESIC (EMPLOYER)__1']) || parseFloat(Object.values(row)[24]) || 0,
+                newGratuity: parseFloat(row['GRATUITY__1']) || parseFloat(Object.values(row)[25]) || 0,
+                newBonusBasic: parseFloat(row['BONUS BASIC']) || parseFloat(Object.values(row)[26]) || 0,
+                newEarnedLeave: parseFloat(row['EARNED LEAVE (EL) /CL']) || parseFloat(Object.values(row)[27]) || 0,
+                newTotalDeductions: parseFloat(row['TOTAL DEDUCTIONS__1']) || parseFloat(Object.values(row)[28]) || 0,
+                newInHandSalary: parseFloat(row['NEW IN HAND SALARY']) || parseFloat(Object.values(row)[29]) || 0,
+                newMonthlyCTC: parseFloat(row['NEW MONTHLY CTC']) || parseFloat(Object.values(row)[30]) || 0,
+                
+                // Increment Details
+                differenceCTC: parseFloat(row['DIFFRENCE CTC']) || parseFloat(Object.values(row)[31]) || 0,
+                incrementAmount: parseFloat(row['INCREMENT AMOUNT']) || parseFloat(Object.values(row)[32]) || 0,
+                hikePercentage: parseFloat(row['HIKE IN PERCENTAGE']) || parseFloat(Object.values(row)[33]) || 0,
+                differenceInHand: parseFloat(row['DIFFRENCE IN HAND SALARY']) || parseFloat(Object.values(row)[34]) || 0,
+            }));
+
+            allEmployees = [...employeeData];
+            displayEmployees(employeeData);
+            updateStats(employeeData);
+        }
+
+        function displayEmployees(employees) {
+            const grid = document.getElementById('employeeGrid');
+            
+            if (employees.length === 0) {
+                grid.innerHTML = '<div class="no-results">No employees found</div>';
+                return;
+            }
+
+            grid.innerHTML = employees.map(emp => `
+                <div class="employee-card" onclick="showEmployeeReport('${emp.empCode}')">
+                    <h3>${emp.name}</h3>
+                    <div class="emp-code">Code: ${emp.empCode}</div>
+                    <div class="designation">${emp.designation}</div>
+                    <div class="department">📂 ${emp.department}</div>
+                    <div class="increment-badge">
+                        ${emp.hikePercentage ? (emp.hikePercentage * 100).toFixed(1) + '% Increment' : 'N/A'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats(employees) {
+            const total = employees.length;
+            const avgIncrement = employees.reduce((sum, emp) => sum + (emp.hikePercentage || 0), 0) / total;
+            const totalIncrementCTC = employees.reduce((sum, emp) => sum + (emp.differenceCTC || 0), 0);
+
+            document.getElementById('totalEmployees').textContent = total;
+            document.getElementById('avgIncrement').textContent = (avgIncrement * 100).toFixed(2) + '%';
+            document.getElementById('totalIncrement').textContent = '₹' + totalIncrementCTC.toLocaleString('en-IN');
+        }
+
+        // Search Functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allEmployees.filter(emp => 
+                emp.name.toLowerCase().includes(searchTerm) ||
+                emp.empCode.toLowerCase().includes(searchTerm) ||
+                emp.department.toLowerCase().includes(searchTerm) ||
+                emp.designation.toLowerCase().includes(searchTerm)
+            );
+            displayEmployees(filtered);
+        });
+
+        function formatCurrency(amount) {
+            return '₹' + (amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-IN');
+            } catch {
+                return dateStr;
+            }
+        }
+
+        function showEmployeeReport(empCode) {
+            const employee = employeeData.find(emp => emp.empCode === empCode);
+            if (!employee) return;
+
+            const reportHTML = `
+                <!-- HEADER -->
+                <div class="pdf-header">
+                    <h1>SALARY INCREMENT REPORT</h1>
+                    <h2>Financial Year 2024-25</h2>
+                    <p>Confidential Document</p>
+                </div>
+
+                <!-- EMPLOYEE INFO BAR -->
+                <div class="pdf-emp-info">
+                    <div class="info-item">
+                        <span class="info-label">Employee Code</span>
+                        <span class="info-value">${employee.empCode}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Employee Name</span>
+                        <span class="info-value">${employee.name}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Designation</span>
+                        <span class="info-value">${employee.designation}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Department</span>
+                        <span class="info-value">${employee.department}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Date of Joining</span>
+                        <span class="info-value">${formatDate(employee.doj)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Hike</span>
+                        <span class="info-value" style="color:#2e7d32;">${(employee.hikePercentage * 100).toFixed(2)}%</span>
+                    </div>
+                </div>
+
+                <!-- INCREMENT SUMMARY CARDS -->
+                <div class="pdf-summary-bar">
+                    <div class="pdf-summary-card">
+                        <div class="sc-label">CTC Increase</div>
+                        <div class="sc-value">${formatCurrency(employee.differenceCTC)}</div>
+                    </div>
+                    <div class="pdf-summary-card">
+                        <div class="sc-label">In-Hand Increase</div>
+                        <div class="sc-value">${formatCurrency(employee.differenceInHand)}</div>
+                    </div>
+                    <div class="pdf-summary-card">
+                        <div class="sc-label">Increment Amount</div>
+                        <div class="sc-value">${formatCurrency(employee.incrementAmount)}</div>
+                    </div>
+                    <div class="pdf-summary-card">
+                        <div class="sc-label">Hike %</div>
+                        <div class="sc-value">${(employee.hikePercentage * 100).toFixed(2)}%</div>
+                    </div>
+                </div>
+
+                <!-- SIDE-BY-SIDE COMPARISON -->
+                <div class="pdf-compare-grid">
+                    <!-- LEFT: EXISTING SALARY -->
+                    <div>
+                        <div class="pdf-col-header old">📋 EXISTING SALARY STRUCTURE</div>
+                        <table class="pdf-table">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th style="text-align:right;">Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Basic Salary</td><td class="amount">${formatCurrency(employee.oldBasicSalary)}</td></tr>
+                                <tr><td>Gross Salary</td><td class="amount">${formatCurrency(employee.oldGrossSalary)}</td></tr>
+                                <tr><td>Actual Salary</td><td class="amount">${formatCurrency(employee.oldActualSalary)}</td></tr>
+                                <tr><td>Employer PF</td><td class="amount">${formatCurrency(employee.oldEmployerPF)}</td></tr>
+                                <tr><td>Employee PF</td><td class="amount">${formatCurrency(employee.oldEmployeePF)}</td></tr>
+                                <tr><td>ESIC (Employee)</td><td class="amount">${formatCurrency(employee.oldESICEmployee)}</td></tr>
+                                <tr><td>ESIC (Employer)</td><td class="amount">${formatCurrency(employee.oldESICEmployer)}</td></tr>
+                                <tr><td>Gratuity</td><td class="amount">${formatCurrency(employee.oldGratuity)}</td></tr>
+                                <tr><td>Bonus Gross</td><td class="amount">${formatCurrency(employee.oldBonusGross)}</td></tr>
+                                <tr><td>Earned Leave (EL)</td><td class="amount">${employee.oldEarnedLeave || 0} days</td></tr>
+                                <tr><td>Total Deductions</td><td class="amount">${formatCurrency(employee.oldTotalDeductions)}</td></tr>
+                                <tr class="highlight-row"><td><strong>In-Hand Salary</strong></td><td class="amount"><strong>${formatCurrency(employee.oldInHandSalary)}</strong></td></tr>
+                                <tr class="highlight-row"><td><strong>Monthly CTC</strong></td><td class="amount"><strong>${formatCurrency(employee.oldMonthlyCTC)}</strong></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- RIGHT: NEW SALARY -->
+                    <div>
+                        <div class="pdf-col-header new">✅ NEW SALARY STRUCTURE (After Increment)</div>
+                        <table class="pdf-table">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th style="text-align:right;">Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Basic Salary</td><td class="amount">${formatCurrency(employee.newBasicSalary)}</td></tr>
+                                <tr><td>Gross Salary</td><td class="amount">${formatCurrency(employee.newGrossSalary)}</td></tr>
+                                <tr><td>—</td><td class="amount">—</td></tr>
+                                <tr><td>Employer PF</td><td class="amount">${formatCurrency(employee.newEmployerPF)}</td></tr>
+                                <tr><td>Employee PF</td><td class="amount">${formatCurrency(employee.newEmployeePF)}</td></tr>
+                                <tr><td>ESIC (Employee)</td><td class="amount">${formatCurrency(employee.newESICEmployee)}</td></tr>
+                                <tr><td>ESIC (Employer)</td><td class="amount">${formatCurrency(employee.newESICEmployer)}</td></tr>
+                                <tr><td>Gratuity</td><td class="amount">${formatCurrency(employee.newGratuity)}</td></tr>
+                                <tr><td>Bonus Basic</td><td class="amount">${formatCurrency(employee.newBonusBasic)}</td></tr>
+                                <tr><td>Earned Leave (EL/CL)</td><td class="amount">${employee.newEarnedLeave || 0} days</td></tr>
+                                <tr><td>Total Deductions</td><td class="amount">${formatCurrency(employee.newTotalDeductions)}</td></tr>
+                                <tr class="highlight-row"><td><strong>New In-Hand Salary</strong></td><td class="amount"><strong>${formatCurrency(employee.newInHandSalary)}</strong></td></tr>
+                                <tr class="highlight-row"><td><strong>New Monthly CTC</strong></td><td class="amount"><strong>${formatCurrency(employee.newMonthlyCTC)}</strong></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- NOTE -->
+                <div style="background:#f9f9fc; border-left: 3px solid #667eea; padding: 6px 10px; border-radius: 0 4px 4px 0; font-size: 0.8em; color: #555; line-height: 1.5;">
+                    <strong>Note:</strong> This increment is effective from the current financial year. All statutory deductions including PF, ESIC, and other applicable taxes have been calculated as per current regulations. This document is confidential and for your reference only.
+                </div>
+
+                <div class="pdf-footer">
+                    <span>Generated on: ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    &nbsp;|&nbsp;
+                    <span>HR Department &nbsp;|&nbsp; Confidential Document</span>
+                </div>
+            `;
+
+            document.getElementById('pdfReport').innerHTML = reportHTML;
+            document.getElementById('pdfModal').style.display = 'block';
+            document.getElementById('pdfReport').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('pdfModal').style.display = 'none';
+        }
+
+        function printPDF() {
+            window.print();
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const element = document.getElementById('pdfReport');
+
+            try {
+                // Capture exactly the A4-sized element at high resolution
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    width: 794,
+                    height: 1123,
+                    windowWidth: 794,
+                    windowHeight: 1123
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();   // 210mm
+                const pdfHeight = pdf.internal.pageSize.getHeight();  // 297mm
+
+                // Fit the entire captured image onto exactly ONE page
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                const employee = employeeData.find(emp =>
+                    document.getElementById('pdfReport').innerHTML.includes(emp.empCode)
+                );
+                const fileName = `Increment_Report_${employee ? employee.empCode : 'EMP'}_${(employee ? employee.name : 'Report').replace(/\s+/g, '_')}.pdf`;
+                pdf.save(fileName);
+            } catch (error) {
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('pdfModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
