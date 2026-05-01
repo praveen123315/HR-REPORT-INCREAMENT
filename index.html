@@ -216,8 +216,8 @@
         /* PDF Report Styles - Single A4 Page */
         .pdf-report {
             display: none;
-            width: 794px; /* A4 width at 96 DPI */
-            height: 1123px; /* A4 height at 96 DPI - FIXED, no overflow */
+            width: 794px;
+            height: 1123px;
             background: white;
             padding: 24px 28px 20px;
             margin: 0 auto;
@@ -225,31 +225,36 @@
             overflow: hidden;
             box-sizing: border-box;
             font-size: 11px;
+            color: #000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .pdf-header {
             text-align: center;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid #000;
             padding-bottom: 10px;
             margin-bottom: 10px;
         }
 
         .pdf-header h1 {
-            color: #667eea;
-            font-size: 1.4em;
+            color: #000;
+            font-size: 1.5em;
             margin-bottom: 2px;
             letter-spacing: 1px;
+            font-weight: 800;
         }
 
         .pdf-header h2 {
-            color: #764ba2;
+            color: #000;
             font-size: 1em;
             margin-top: 3px;
+            font-weight: 600;
         }
 
         .pdf-header p {
             font-size: 0.85em;
-            color: #888;
+            color: #333;
             margin-top: 2px;
         }
 
@@ -258,11 +263,11 @@
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 6px;
-            background: #f4f4fb;
+            background: #e8e8e8;
             border-radius: 5px;
             padding: 8px 12px;
             margin-bottom: 10px;
-            border: 1px solid #e0e0f0;
+            border: 1.5px solid #000;
         }
 
         .pdf-emp-info .info-item {
@@ -271,15 +276,16 @@
         }
 
         .pdf-emp-info .info-label {
-            font-size: 0.75em;
-            color: #888;
+            font-size: 0.72em;
+            color: #000;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-weight: 700;
         }
 
         .pdf-emp-info .info-value {
-            font-weight: 600;
-            color: #333;
+            font-weight: 700;
+            color: #000;
             font-size: 0.95em;
         }
 
@@ -292,7 +298,7 @@
         }
 
         .pdf-col-header {
-            color: white;
+            color: #fff;
             padding: 6px 10px;
             border-radius: 4px 4px 0 0;
             font-weight: bold;
@@ -302,11 +308,11 @@
         }
 
         .pdf-col-header.old {
-            background: #5a6abf;
+            background: #333;
         }
 
         .pdf-col-header.new {
-            background: #2e7d32;
+            background: #111;
         }
 
         .pdf-table {
@@ -315,32 +321,35 @@
         }
 
         .pdf-table th {
-            background: #f0f0f5;
+            background: #d0d0d0;
             padding: 5px 8px;
             text-align: left;
-            border: 1px solid #ddd;
+            border: 1px solid #000;
             font-weight: bold;
-            color: #333;
+            color: #000;
             font-size: 0.85em;
         }
 
         .pdf-table td {
             padding: 4px 8px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #555;
             font-size: 0.85em;
+            color: #000;
         }
 
         .pdf-table td.amount {
             text-align: right;
+            color: #000;
         }
 
         .pdf-table tr:nth-child(even) {
-            background: #f9f9f9;
+            background: #f0f0f0;
         }
 
         .highlight-row td {
-            background: #fff3cd !important;
+            background: #d4d4d4 !important;
             font-weight: bold;
+            color: #000 !important;
         }
 
         /* Increment summary bar */
@@ -352,8 +361,8 @@
         }
 
         .pdf-summary-card {
-            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-            border: 1px solid #a5d6a7;
+            background: #e0e0e0;
+            border: 1.5px solid #000;
             border-radius: 6px;
             padding: 8px 10px;
             text-align: center;
@@ -361,16 +370,16 @@
 
         .pdf-summary-card .sc-label {
             font-size: 0.72em;
-            color: #2e7d32;
+            color: #000;
             text-transform: uppercase;
             letter-spacing: 0.3px;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .pdf-summary-card .sc-value {
             font-size: 1.05em;
-            font-weight: 700;
-            color: #1b5e20;
+            font-weight: 800;
+            color: #000;
             margin-top: 2px;
         }
 
@@ -381,8 +390,8 @@
             right: 28px;
             text-align: center;
             padding-top: 8px;
-            border-top: 1px solid #e0e0e0;
-            color: #999;
+            border-top: 1px solid #000;
+            color: #000;
             font-size: 0.78em;
         }
 
@@ -557,6 +566,39 @@
         let employeeData = [];
         let allEmployees = [];
 
+        // ── Column-letter mapping (A=0, B=1, … Z=25, AA=26 …) ──
+        // We read the worksheet directly using cell addresses so duplicate
+        // column headers never confuse us.  The header row tells us which
+        // column letter belongs to which field name.
+        let colMap   = {};   // { 'BASIC SALARY': ['G','T'], … }  — all occurrences
+        let dataRowStart = 2; // 1-based row number where data begins (row 1 = header)
+
+        function colLetterToIndex(col) {
+            let n = 0;
+            for (let c of col) n = n * 26 + (c.charCodeAt(0) - 64);
+            return n - 1; // 0-based
+        }
+
+        function cellVal(ws, col, row) {
+            if (!col || !row) return null;
+            const addr = col + row;
+            const cell = ws[addr];
+            if (!cell || cell.v === undefined || cell.v === null || cell.v === '') return null;
+            return cell.v;
+        }
+
+        function cellNum(ws, col, row) {
+            const v = cellVal(ws, col, row);
+            if (v === null) return 0;
+            const n = parseFloat(String(v).replace(/,/g, ''));
+            return isNaN(n) ? 0 : n;
+        }
+
+        function cellStr(ws, col, row) {
+            const v = cellVal(ws, col, row);
+            return v === null ? '' : String(v).trim();
+        }
+
         // File Upload Handler
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -570,14 +612,47 @@
                 try {
                     const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, {type: 'array', cellDates: true});
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, {raw: false});
-                    
-                    processEmployeeData(jsonData);
+                    const ws = workbook.Sheets[workbook.SheetNames[0]];
+                    const range = XLSX.utils.decode_range(ws['!ref']);
+
+                    // ── Step 1: Find the header row (first row with 'EMP CODE' or 'EMPLOYEE NAME') ──
+                    let headerRow = -1;
+                    for (let r = range.s.r; r <= Math.min(range.s.r + 5, range.e.r); r++) {
+                        for (let c = range.s.c; c <= range.e.c; c++) {
+                            const addr = XLSX.utils.encode_cell({r, c});
+                            const cell = ws[addr];
+                            if (cell && cell.v && /EMP.?CODE|EMPLOYEE.?NAME/i.test(String(cell.v))) {
+                                headerRow = r;
+                                break;
+                            }
+                        }
+                        if (headerRow >= 0) break;
+                    }
+                    if (headerRow < 0) headerRow = 0; // fallback: row 0
+                    dataRowStart = headerRow + 1;
+
+                    // ── Step 2: Build colMap — header text → [colLetter, colLetter, …] ──
+                    colMap = {};
+                    for (let c = range.s.c; c <= range.e.c; c++) {
+                        const addr = XLSX.utils.encode_cell({r: headerRow, c});
+                        const cell = ws[addr];
+                        if (!cell || !cell.v) continue;
+                        const key = String(cell.v).trim().toUpperCase();
+                        const letter = XLSX.utils.encode_col(c);
+                        if (!colMap[key]) colMap[key] = [];
+                        colMap[key].push(letter);
+                    }
+
+                    console.log('Header row:', headerRow + 1, '| Column map:', colMap);
+
+                    // ── Step 3: Process each data row ──
+                    processEmployeeData(ws, range, dataRowStart);
+
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('searchSection').style.display = 'block';
                     document.getElementById('statsSection').style.display = 'grid';
                 } catch (error) {
+                    console.error(error);
                     alert('Error reading file: ' + error.message);
                     document.getElementById('loading').style.display = 'none';
                 }
@@ -585,50 +660,83 @@
             reader.readAsArrayBuffer(file);
         });
 
-        function processEmployeeData(data) {
-            employeeData = data.map(row => ({
-                srNo: row['SR NO'],
-                empCode: row['EMP CODE'],
-                name: row['EMPLOYEE NAME'],
-                doj: row['DATE OF JOINING (DOJ)'],
-                designation: row['DESIGNATION'],
-                department: row['DEPARTMENT'],
-                
-                // Old Salary Structure
-                oldBasicSalary: parseFloat(row['BASIC SALARY']) || 0,
-                oldGrossSalary: parseFloat(row['GROSS SALARY']) || 0,
-                oldActualSalary: parseFloat(row['ACTUAL SALARY']) || 0,
-                oldEmployerPF: parseFloat(row['EMPLOYER PF']) || 0,
-                oldEmployeePF: parseFloat(row['EMPLOYEE PF']) || 0,
-                oldESICEmployee: parseFloat(row['ESIC (EMPLOYEE)']) || 0,
-                oldESICEmployer: parseFloat(row['ESIC (EMPLOYER)']) || 0,
-                oldGratuity: parseFloat(row['GRATUITY']) || 0,
-                oldBonusGross: parseFloat(row['BONUS GROSS']) || 0,
-                oldEarnedLeave: parseFloat(row['EARNED LEAVE (EL)']) || 0,
-                oldTotalDeductions: parseFloat(row['TOTAL DEDUCTIONS']) || 0,
-                oldInHandSalary: parseFloat(row['IN-HAND SALARY']) || 0,
-                oldMonthlyCTC: parseFloat(row['EXISTING MONTHLY CTC']) || 0,
-                
-                // New Salary Structure (using column index 19+ for second set)
-                newBasicSalary: parseFloat(row['BASIC SALARY__1']) || parseFloat(Object.values(row)[19]) || 0,
-                newGrossSalary: parseFloat(row['GROSS SALARY__1']) || parseFloat(Object.values(row)[20]) || 0,
-                newEmployerPF: parseFloat(row['EMPLOYER PF__1']) || parseFloat(Object.values(row)[21]) || 0,
-                newEmployeePF: parseFloat(row['EMPLOYEE PF__1']) || parseFloat(Object.values(row)[22]) || 0,
-                newESICEmployee: parseFloat(row['ESIC (EMPLOYEE)__1']) || parseFloat(Object.values(row)[23]) || 0,
-                newESICEmployer: parseFloat(row['ESIC (EMPLOYER)__1']) || parseFloat(Object.values(row)[24]) || 0,
-                newGratuity: parseFloat(row['GRATUITY__1']) || parseFloat(Object.values(row)[25]) || 0,
-                newBonusBasic: parseFloat(row['BONUS BASIC']) || parseFloat(Object.values(row)[26]) || 0,
-                newEarnedLeave: parseFloat(row['EARNED LEAVE (EL) /CL']) || parseFloat(Object.values(row)[27]) || 0,
-                newTotalDeductions: parseFloat(row['TOTAL DEDUCTIONS__1']) || parseFloat(Object.values(row)[28]) || 0,
-                newInHandSalary: parseFloat(row['NEW IN HAND SALARY']) || parseFloat(Object.values(row)[29]) || 0,
-                newMonthlyCTC: parseFloat(row['NEW MONTHLY CTC']) || parseFloat(Object.values(row)[30]) || 0,
-                
-                // Increment Details
-                differenceCTC: parseFloat(row['DIFFRENCE CTC']) || parseFloat(Object.values(row)[31]) || 0,
-                incrementAmount: parseFloat(row['INCREMENT AMOUNT']) || parseFloat(Object.values(row)[32]) || 0,
-                hikePercentage: parseFloat(row['HIKE IN PERCENTAGE']) || parseFloat(Object.values(row)[33]) || 0,
-                differenceInHand: parseFloat(row['DIFFRENCE IN HAND SALARY']) || parseFloat(Object.values(row)[34]) || 0,
-            }));
+        // col(name, occurrence) → column letter;  occurrence 0=first, 1=second
+        function col(name, occ = 0) {
+            const k = name.toUpperCase();
+            if (!colMap[k] || !colMap[k][occ]) return null;
+            return colMap[k][occ];
+        }
+
+        function processEmployeeData(ws, range, startRow) {
+            employeeData = [];
+
+            for (let r = startRow; r <= range.e.r; r++) {
+                // Skip empty rows
+                const empCodeCol = col('EMP CODE');
+                if (!empCodeCol) continue;
+                const empCodeVal = cellStr(ws, empCodeCol, r + 1);
+                if (!empCodeVal) continue;
+
+                // Row number in Excel is 1-based
+                const R = r + 1;
+
+                // ── Raw hike from Excel — shown exactly as-is ──
+                const hikeCol = col('HIKE IN PERCENTAGE') || col('HIKE PERCENTAGE') || col('HIKE%') || col('HIKE %');
+                const rawHike = hikeCol ? cellVal(ws, hikeCol, R) : null;
+                // Format: if stored as decimal (e.g. 0.08 for 8%), convert; if already 8, keep
+                let hikeDisplay = '0';
+                if (rawHike !== null && rawHike !== undefined && rawHike !== '') {
+                    const h = parseFloat(String(rawHike).replace(/,/g,''));
+                    if (!isNaN(h)) {
+                        // if value is between 0 and 1 (e.g. 0.08), it's a fraction → multiply by 100
+                        hikeDisplay = (h > 0 && h < 1) ? (h * 100).toFixed(2) : String(rawHike).replace('%','').trim();
+                    }
+                }
+
+                employeeData.push({
+                    srNo:        cellStr(ws, col('SR NO'), R),
+                    empCode:     empCodeVal,
+                    name:        cellStr(ws, col('EMPLOYEE NAME'), R),
+                    doj:         cellStr(ws, col('DATE OF JOINING (DOJ)') || col('DOJ'), R),
+                    designation: cellStr(ws, col('DESIGNATION'), R),
+                    department:  cellStr(ws, col('DEPARTMENT'), R),
+
+                    // ── EXISTING Salary — first occurrence of each column ──
+                    oldBasicSalary:     cellNum(ws, col('BASIC SALARY',    0), R),
+                    oldGrossSalary:     cellNum(ws, col('GROSS SALARY',    0), R),
+                    oldActualSalary:    cellNum(ws, col('ACTUAL SALARY',   0), R),
+                    oldEmployerPF:      cellNum(ws, col('EMPLOYER PF',     0), R),
+                    oldEmployeePF:      cellNum(ws, col('EMPLOYEE PF',     0), R),
+                    oldESICEmployee:    cellNum(ws, col('ESIC (EMPLOYEE)', 0), R),
+                    oldESICEmployer:    cellNum(ws, col('ESIC (EMPLOYER)', 0), R),
+                    oldGratuity:        cellNum(ws, col('GRATUITY',        0), R),
+                    oldBonusGross:      cellNum(ws, col('BONUS GROSS',     0), R),
+                    oldEarnedLeave:     cellNum(ws, col('EARNED LEAVE (EL)', 0), R),
+                    oldTotalDeductions: cellNum(ws, col('TOTAL DEDUCTIONS', 0), R),
+                    oldInHandSalary:    cellNum(ws, col('IN-HAND SALARY',  0), R),
+                    oldMonthlyCTC:      cellNum(ws, col('EXISTING MONTHLY CTC', 0) ?? col('MONTHLY CTC', 0), R),
+
+                    // ── NEW Salary — SECOND occurrence of duplicate columns ──
+                    newBasicSalary:     cellNum(ws, col('BASIC SALARY',    1), R),
+                    newGrossSalary:     cellNum(ws, col('GROSS SALARY',    1), R),
+                    newEmployerPF:      cellNum(ws, col('EMPLOYER PF',     1), R),
+                    newEmployeePF:      cellNum(ws, col('EMPLOYEE PF',     1), R),
+                    newESICEmployee:    cellNum(ws, col('ESIC (EMPLOYEE)', 1), R),
+                    newESICEmployer:    cellNum(ws, col('ESIC (EMPLOYER)', 1), R),
+                    newGratuity:        cellNum(ws, col('GRATUITY',        1), R),
+                    newBonusBasic:      cellNum(ws, col('BONUS BASIC',     0) ?? col('BONUS GROSS', 1), R),
+                    newEarnedLeave:     cellNum(ws, col('EARNED LEAVE (EL) /CL', 0) ?? col('EARNED LEAVE (EL)', 1), R),
+                    newTotalDeductions: cellNum(ws, col('TOTAL DEDUCTIONS', 1), R),
+                    newInHandSalary:    cellNum(ws, col('NEW IN HAND SALARY', 0) ?? col('IN-HAND SALARY', 1), R),
+                    newMonthlyCTC:      cellNum(ws, col('NEW MONTHLY CTC', 0) ?? col('MONTHLY CTC', 1), R),
+
+                    // ── Increment summary — unique columns, read directly ──
+                    differenceCTC:    cellNum(ws, col('DIFFRENCE CTC') ?? col('DIFFERENCE CTC'), R),
+                    incrementAmount:  cellNum(ws, col('INCREMENT AMOUNT'), R),
+                    hikePercentageRaw: hikeDisplay,
+                    differenceInHand: cellNum(ws, col('DIFFRENCE IN HAND SALARY') ?? col('DIFFERENCE IN HAND SALARY'), R),
+                });
+            }
 
             allEmployees = [...employeeData];
             displayEmployees(employeeData);
@@ -650,7 +758,7 @@
                     <div class="designation">${emp.designation}</div>
                     <div class="department">📂 ${emp.department}</div>
                     <div class="increment-badge">
-                        ${emp.hikePercentage ? (emp.hikePercentage * 100).toFixed(1) + '% Increment' : 'N/A'}
+                        ${emp.hikePercentageRaw && emp.hikePercentageRaw !== '0' ? emp.hikePercentageRaw + '% Increment' : 'N/A'}
                     </div>
                 </div>
             `).join('');
@@ -658,11 +766,11 @@
 
         function updateStats(employees) {
             const total = employees.length;
-            const avgIncrement = employees.reduce((sum, emp) => sum + (emp.hikePercentage || 0), 0) / total;
+            const avgIncrement = employees.reduce((sum, emp) => sum + (parseFloat(emp.hikePercentageRaw) || 0), 0) / total;
             const totalIncrementCTC = employees.reduce((sum, emp) => sum + (emp.differenceCTC || 0), 0);
 
             document.getElementById('totalEmployees').textContent = total;
-            document.getElementById('avgIncrement').textContent = (avgIncrement * 100).toFixed(2) + '%';
+            document.getElementById('avgIncrement').textContent = avgIncrement.toFixed(2) + '%';
             document.getElementById('totalIncrement').textContent = '₹' + totalIncrementCTC.toLocaleString('en-IN');
         }
 
@@ -728,7 +836,7 @@
                     </div>
                     <div class="info-item">
                         <span class="info-label">Hike</span>
-                        <span class="info-value" style="color:#2e7d32;">${(employee.hikePercentage * 100).toFixed(2)}%</span>
+                        <span class="info-value" style="color:#000; font-weight:800;">${employee.hikePercentageRaw}%</span>
                     </div>
                 </div>
 
@@ -748,7 +856,7 @@
                     </div>
                     <div class="pdf-summary-card">
                         <div class="sc-label">Hike %</div>
-                        <div class="sc-value">${(employee.hikePercentage * 100).toFixed(2)}%</div>
+                        <div class="sc-value">${employee.hikePercentageRaw}%</div>
                     </div>
                 </div>
 
@@ -795,7 +903,7 @@
                             <tbody>
                                 <tr><td>Basic Salary</td><td class="amount">${formatCurrency(employee.newBasicSalary)}</td></tr>
                                 <tr><td>Gross Salary</td><td class="amount">${formatCurrency(employee.newGrossSalary)}</td></tr>
-                                <tr><td>—</td><td class="amount">—</td></tr>
+                                <tr><td style="color:#888; font-style:italic;">Actual Salary</td><td class="amount" style="color:#888;">—</td></tr>
                                 <tr><td>Employer PF</td><td class="amount">${formatCurrency(employee.newEmployerPF)}</td></tr>
                                 <tr><td>Employee PF</td><td class="amount">${formatCurrency(employee.newEmployeePF)}</td></tr>
                                 <tr><td>ESIC (Employee)</td><td class="amount">${formatCurrency(employee.newESICEmployee)}</td></tr>
@@ -812,7 +920,7 @@
                 </div>
 
                 <!-- NOTE -->
-                <div style="background:#f9f9fc; border-left: 3px solid #667eea; padding: 6px 10px; border-radius: 0 4px 4px 0; font-size: 0.8em; color: #555; line-height: 1.5;">
+                <div style="background:#ebebeb; border-left: 3px solid #000; padding: 6px 10px; border-radius: 0 4px 4px 0; font-size: 0.8em; color: #000; line-height: 1.5;">
                     <strong>Note:</strong> This increment is effective from the current financial year. All statutory deductions including PF, ESIC, and other applicable taxes have been calculated as per current regulations. This document is confidential and for your reference only.
                 </div>
 
