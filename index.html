@@ -667,12 +667,10 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
 
 function fc(amount) {
     if (amount === null || amount === undefined) return '';
-    const n = amount || 0;
-    // Show as whole number if it's an integer, otherwise up to 2 decimal places
-    const isWhole = Number.isInteger(n) || Math.abs(n - Math.round(n)) < 0.005;
-    return '₹' + (isWhole ? Math.round(n) : n).toLocaleString('en-IN', {
-        minimumFractionDigits: isWhole ? 0 : 2,
-        maximumFractionDigits: 2
+    const n = Math.round(amount || 0);
+    return '₹' + n.toLocaleString('en-IN', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
     });
 }
 function formatDate(dateStr) {
