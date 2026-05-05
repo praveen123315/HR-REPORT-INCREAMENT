@@ -511,50 +511,57 @@ function processEmployeeData(ws, range, startRow) {
             const h = parseFloat(String(rawHike).replace(/,/g,''));
             if (!isNaN(h)) { const val = (h > 0 && h < 1) ? Math.round(h*100) : Math.round(h); hikeDisplay = String(val); }
         }
+        // Helper: try multiple header variants
+        function colAny(...names) {
+            for (const n of names) { const c = col(n); if (c) return c; }
+            return null;
+        }
         employeeData.push({
-            srNo: cellStr(ws, col('SR NO'), R),
+            srNo: cellStr(ws, colAny('SR NO', 'SR. NO', 'S.NO', 'SNO'), R),
             empCode: empCodeVal,
-            name: cellStr(ws, col('EMPLOYEE NAME'), R),
-            doj: cellStr(ws, col('DATE OF JOINING (DOJ)') || col('DOJ'), R),
-            designation: cellStr(ws, col('DESIGNATION'), R),
-            department: cellStr(ws, col('DEPARTMENT'), R),
-            // OLD salary — try exact sheet names first, fall back to duplicate-column approach
-            oldBasicSalary:     cellNum(ws, col('BASIC SALARY OLD') || col('BASIC SALARY', 0), R),
-            oldGrossSalary:     cellNum(ws, col('GROSS SALARYOLD') || col('GROSS SALARY OLD') || col('GROSS SALARY', 0), R),
-            oldActualSalary:    cellNum(ws, col('ACTUAL SALARYOLD') || col('ACTUAL SALARY OLD') || col('ACTUAL SALARY', 0), R),
-            oldEmployerPF:      cellNum(ws, col('EMPLOYER PF OLD') || col('EMPLOYER PF', 0), R),
-            oldEmployeePF:      cellNum(ws, col('EMPLOYEE PF OLD') || col('EMPLOYEE PF', 0), R),
-            oldESICEmployee:    cellNum(ws, col('ESIC (EMPLOYEE)OLD') || col('ESIC (EMPLOYEE) OLD') || col('ESIC (EMPLOYEE)', 0), R),
-            oldESICEmployer:    cellNum(ws, col('ESIC (EMPLOYER)OLD') || col('ESIC (EMPLOYER) OLD') || col('ESIC (EMPLOYER)', 0), R),
-            oldGratuity:        cellNum(ws, col('GRATUITY OLD') || col('GRATUITY', 0), R),
-            oldBonusGross:      cellNum(ws, col('BONUS GROSS OLD') || col('BONUS GROSS', 0), R),
-            impactInBonus:      cellNum(ws, col('IMPACT IN BONUS'), R),
-            oldEarnedLeave:     cellNum(ws, col('EARNED LEAVE (EL)') || col('EARNED LEAVE (EL)', 0), R),
-            oldTotalDeductions: cellNum(ws, col('TOTAL DEDUCTIONS') || col('TOTAL DEDUCTIONS', 0), R),
-            oldInHandSalary:    cellNum(ws, col('IN-HAND SALARY') || col('IN-HAND SALARY', 0), R),
-            oldMonthlyCTC:      cellNum(ws, col('EXISTING MONTHLY CTC') || col('MONTHLY CTC', 0), R),
-            // NEW salary — try exact sheet names first, fall back to duplicate-column approach
-            newBasicSalary:     cellNum(ws, col('BASIC SALARY NEW') || col('BASIC SALARY', 1), R),
-            newGrossSalary:     cellNum(ws, col('GROSS SALARY NEW') || col('GROSS SALARY', 1), R),
-            newEmployerPF:      cellNum(ws, col('EMPLOYER PF NEW') || col('EMPLOYER PF', 1), R),
-            newEmployeePF:      cellNum(ws, col('EMPLOYEE PF NEW') || col('EMPLOYEE PF', 1), R),
-            newESICEmployee:    cellNum(ws, col('ESIC (EMPLOYEE) NEW') || col('ESIC (EMPLOYEE)', 1), R),
-            newESICEmployer:    cellNum(ws, col('ESIC (EMPLOYER)NEW') || col('ESIC (EMPLOYER) NEW') || col('ESIC (EMPLOYER)', 1), R),
-            newGratuity:        cellNum(ws, col('GRATUITY NEW') || col('GRATUITY', 1), R),
-            newBonusBasic:      cellNum(ws, col('BONUS BASIC NEW') || col('BONUS BASIC', 0) || col('BONUS GROSS', 1), R),
-            newEarnedLeave:     cellNum(ws, col('EARNED LEAVE (EL) /CL NEW') || col('EARNED LEAVE (EL) /CL') || col('EARNED LEAVE (EL)', 1), R),
-            newActualSalary:    cellNum(ws, col('ACTUAL SALARYNEW') || col('ACTUAL SALARY NEW') || col('ACTUAL SALARY', 1), R),
-            newImpactInBonus:   cellNum(ws, col('IMPACT IN NEW BONUS') || col('IMPACT IN NEW BONUS', 0), R),
-            newTotalDeductions: cellNum(ws, col('TOTAL DEDUCTIONS NEW') || col('TOTAL DEDUCTIONS', 1), R),
-            newInHandSalary:    cellNum(ws, col('NEW IN HAND SALARY NEW') || col('NEW IN HAND SALARY') || col('IN-HAND SALARY', 1), R),
-            newMonthlyCTC:      cellNum(ws, col('NEW MONTHLY CTC NEW') || col('NEW MONTHLY CTC') || col('MONTHLY CTC', 1), R),
+            name: cellStr(ws, colAny('EMPLOYEE NAME', 'EMP NAME', 'NAME'), R),
+            doj: cellStr(ws, colAny('DATE OF JOINING (DOJ)', 'DATE OF JOINING', 'DOJ'), R),
+            designation: cellStr(ws, colAny('DESIGNATION'), R),
+            department: cellStr(ws, colAny('DEPARTMENT', 'DEPT'), R),
+            // OLD salary — exact header names
+            oldBasicSalary:     cellNum(ws, colAny('BASIC SALARY OLD', 'BASIC SALARY (OLD)', 'OLD BASIC SALARY'), R),
+            oldGrossSalary:     cellNum(ws, colAny('GROSS SALARY OLD', 'GROSS SALARY (OLD)', 'OLD GROSS SALARY'), R),
+            oldActualSalary:    cellNum(ws, colAny('ACTUAL SALARY OLD', 'ACTUAL SALARY (OLD)', 'OLD ACTUAL SALARY'), R),
+            oldEmployerPF:      cellNum(ws, colAny('EMPLOYER PF OLD', 'EMPLOYER PF (OLD)', 'OLD EMPLOYER PF'), R),
+            oldEmployeePF:      cellNum(ws, colAny('EMPLOYEE PF OLD', 'EMPLOYEE PF (OLD)', 'OLD EMPLOYEE PF'), R),
+            oldESICEmployee:    cellNum(ws, colAny('ESIC (EMPLOYEE) OLD', 'ESIC EMPLOYEE OLD', 'ESIC (EMP) OLD'), R),
+            oldESICEmployer:    cellNum(ws, colAny('ESIC (EMPLOYER) OLD', 'ESIC EMPLOYER OLD', 'ESIC (EMPR) OLD'), R),
+            oldGratuity:        cellNum(ws, colAny('GRATUITY OLD', 'GRATUITY (OLD)', 'OLD GRATUITY'), R),
+            oldBonusGross:      cellNum(ws, colAny('BONUS GROSS OLD', 'BONUS GROSS (OLD)', 'OLD BONUS GROSS', 'BONUS OLD'), R),
+            impactInBonus:      cellNum(ws, colAny('IMPACT IN BONUS', 'IMPACT IN BONUS OLD', 'BONUS IMPACT'), R),
+            oldEarnedLeave:     cellNum(ws, colAny('EARNED LEAVE (EL)', 'EARNED LEAVE', 'EL OLD', 'EL'), R),
+            oldTotalDeductions: cellNum(ws, colAny('TOTAL DEDUCTIONS', 'TOTAL DEDUCTIONS OLD', 'DEDUCTIONS OLD'), R),
+            oldInHandSalary:    cellNum(ws, colAny('IN-HAND SALARY', 'IN HAND SALARY', 'INHAND SALARY', 'OLD IN HAND SALARY'), R),
+            oldMonthlyCTC:      cellNum(ws, colAny('EXISTING MONTHLY CTC', 'MONTHLY CTC OLD', 'OLD MONTHLY CTC', 'CTC OLD'), R),
+            oldAnnuallyCTC:     cellNum(ws, colAny('ANNUALLY CTC OLD', 'ANNUAL CTC OLD', 'OLD ANNUAL CTC', 'ANNUALLY CTC'), R),
             oldMedical:         cellNum(ws, col('MEDICAL', 0), R),
+            // NEW salary — exact header names
+            newBasicSalary:     cellNum(ws, colAny('BASIC SALARY NEW', 'BASIC SALARY (NEW)', 'NEW BASIC SALARY'), R),
+            newGrossSalary:     cellNum(ws, colAny('GROSS SALARY NEW', 'GROSS SALARY (NEW)', 'NEW GROSS SALARY'), R),
+            newActualSalary:    cellNum(ws, colAny('ACTUAL SALARY NEW', 'ACTUAL SALARY (NEW)', 'NEW ACTUAL SALARY'), R),
+            newEmployerPF:      cellNum(ws, colAny('EMPLOYER PF NEW', 'EMPLOYER PF (NEW)', 'NEW EMPLOYER PF'), R),
+            newEmployeePF:      cellNum(ws, colAny('EMPLOYEE PF NEW', 'EMPLOYEE PF (NEW)', 'NEW EMPLOYEE PF'), R),
+            newESICEmployee:    cellNum(ws, colAny('ESIC (EMPLOYEE) NEW', 'ESIC EMPLOYEE NEW', 'ESIC (EMP) NEW'), R),
+            newESICEmployer:    cellNum(ws, colAny('ESIC (EMPLOYER) NEW', 'ESIC EMPLOYER NEW', 'ESIC (EMPR) NEW'), R),
+            newGratuity:        cellNum(ws, colAny('GRATUITY NEW', 'GRATUITY (NEW)', 'NEW GRATUITY'), R),
+            newBonusBasic:      cellNum(ws, colAny('BONUS BASIC NEW', 'BONUS BASIC (NEW)', 'NEW BONUS BASIC', 'BONUS NEW'), R),
+            newImpactInBonus:   cellNum(ws, colAny('IMPACT IN NEW BONUS', 'NEW IMPACT IN BONUS', 'IMPACT NEW BONUS'), R),
+            newEarnedLeave:     cellNum(ws, colAny('EARNED LEAVE (EL) /CL NEW', 'EARNED LEAVE /CL NEW', 'EARNED LEAVE (EL)/CL NEW', 'EL /CL NEW', 'EL/CL NEW', 'EL NEW', 'EARNED LEAVE NEW'), R),
+            newTotalDeductions: cellNum(ws, colAny('TOTAL DEDUCTIONS NEW', 'NEW TOTAL DEDUCTIONS', 'DEDUCTIONS NEW'), R),
+            newInHandSalary:    cellNum(ws, colAny('NEW IN HAND SALARY NEW', 'NEW IN-HAND SALARY', 'NEW IN HAND SALARY', 'NEW INHAND SALARY'), R),
+            newMonthlyCTC:      cellNum(ws, colAny('NEW MONTHLY CTC NEW', 'NEW MONTHLY CTC', 'MONTHLY CTC NEW'), R),
+            newAnnuallyCTC:     cellNum(ws, colAny('ANNUALLY CTC NEW', 'ANNUAL CTC NEW', 'NEW ANNUAL CTC'), R),
             newMedical:         cellNum(ws, col('MEDICAL', 1), R),
-            medical:            cellNum(ws, col('MEDICAL'), R),
-            differenceCTC:      cellNum(ws, col('DIFFRENCE CTC') ?? col('DIFFERENCE CTC'), R),
-            incrementAmount:    cellNum(ws, col('INCREMENT AMOUNT'), R),
+            medical:            cellNum(ws, col('MEDICAL', 0), R),
+            incrementAmount:    cellNum(ws, colAny('INCREMENT AMOUNT', 'INCREMENT', 'HIKE AMOUNT'), R),
             hikePercentageRaw:  hikeDisplay,
-            differenceInHand:   cellNum(ws, col('DIFFRENCE IN HAND SALARY') ?? col('DIFFERENCE IN HAND SALARY'), R),
+            differenceCTC:      cellNum(ws, colAny('DIFFRENCE CTC', 'DIFFERENCE CTC', 'CTC DIFFERENCE'), R),
+            differenceInHand:   cellNum(ws, colAny('DIFFRENCE IN HAND SALARY', 'DIFFERENCE IN HAND SALARY', 'IN HAND DIFFERENCE'), R),
         });
     }
     allEmployees = [...employeeData];
@@ -728,13 +735,14 @@ function buildIndividualPDF(emp) {
                 <tr><td>ESIC (Employee)</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldESICEmployee)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newESICEmployee)}</td></tr>
                 <tr><td>ESIC (Employer)</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldESICEmployer)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newESICEmployer)}</td></tr>
                 <tr><td>Gratuity</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldGratuity)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newGratuity)}</td></tr>
-                <tr><td>Bonus</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldBonusGross)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newBonusBasic)}</td></tr>
+                <tr><td>Bonus Gross / Bonus Basic</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldBonusGross)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newBonusBasic)}</td></tr>
                 <tr><td>Impact in Bonus</td><td class="amount" style="background:#f9f9f9;">${fc(emp.impactInBonus)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newImpactInBonus)}</td></tr>
-                <tr><td>Earned Leave (EL)</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldEarnedLeave)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newEarnedLeave)}</td></tr>
+                <tr><td>Earned Leave (EL) / CL</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldEarnedLeave)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newEarnedLeave)}</td></tr>
                 <tr><td>Medical</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldMedical||emp.medical||0)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newMedical||emp.medical||0)}</td></tr>
                 <tr><td>Total Deductions</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldTotalDeductions)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newTotalDeductions)}</td></tr>
                 <tr class="highlight-row"><td><strong>In-Hand Salary</strong></td><td class="amount" style="background:#e0e0e0;"><strong>${fc(emp.oldInHandSalary)}</strong></td><td class="amount" style="background:#c8f5d4;"><strong>${fc(emp.newInHandSalary)}</strong></td></tr>
                 <tr class="highlight-row"><td><strong>Monthly CTC</strong></td><td class="amount" style="background:#e0e0e0;"><strong>${fc(emp.oldMonthlyCTC)}</strong></td><td class="amount" style="background:#c8f5d4;"><strong>${fc(emp.newMonthlyCTC)}</strong></td></tr>
+                <tr class="highlight-row"><td><strong>Annually CTC</strong></td><td class="amount" style="background:#e0e0e0;"><strong>${fc(emp.oldAnnuallyCTC)}</strong></td><td class="amount" style="background:#c8f5d4;"><strong>${fc(emp.newAnnuallyCTC)}</strong></td></tr>
             </tbody>
         </table>
     </div>
@@ -812,21 +820,22 @@ async function downloadPDF() {
 
         // ── SALARY COMPARISON TABLE ──
         const tableRows = [
-            ['Basic Salary',        fc(emp.oldBasicSalary),     fc(emp.newBasicSalary)],
-            ['Gross Salary',        fc(emp.oldGrossSalary),     fc(emp.newGrossSalary)],
-            ['Actual Salary',       fc(emp.oldActualSalary),    fc(emp.newActualSalary)],
-            ['Employer PF',         fc(emp.oldEmployerPF),      fc(emp.newEmployerPF)],
-            ['Employee PF',         fc(emp.oldEmployeePF),      fc(emp.newEmployeePF)],
-            ['ESIC (Employee)',     fc(emp.oldESICEmployee),    fc(emp.newESICEmployee)],
-            ['ESIC (Employer)',     fc(emp.oldESICEmployer),    fc(emp.newESICEmployer)],
-            ['Gratuity',            fc(emp.oldGratuity),        fc(emp.newGratuity)],
-            ['Bonus',               fc(emp.oldBonusGross),      fc(emp.newBonusBasic)],
-            ['Impact in Bonus',     fc(emp.impactInBonus),      fc(emp.newImpactInBonus)],
-            ['Earned Leave (EL)',   fc(emp.oldEarnedLeave),     fc(emp.newEarnedLeave)],
-            ['Medical',             fc(emp.oldMedical||emp.medical||0), fc(emp.newMedical||emp.medical||0)],
-            ['Total Deductions',    fc(emp.oldTotalDeductions), fc(emp.newTotalDeductions)],
-            ['In-Hand Salary',      fc(emp.oldInHandSalary),    fc(emp.newInHandSalary)],
-            ['Monthly CTC',         fc(emp.oldMonthlyCTC),      fc(emp.newMonthlyCTC)],
+            ['Basic Salary',             fc(emp.oldBasicSalary),     fc(emp.newBasicSalary)],
+            ['Gross Salary',             fc(emp.oldGrossSalary),     fc(emp.newGrossSalary)],
+            ['Actual Salary',            fc(emp.oldActualSalary),    fc(emp.newActualSalary)],
+            ['Employer PF',              fc(emp.oldEmployerPF),      fc(emp.newEmployerPF)],
+            ['Employee PF',              fc(emp.oldEmployeePF),      fc(emp.newEmployeePF)],
+            ['ESIC (Employee)',          fc(emp.oldESICEmployee),    fc(emp.newESICEmployee)],
+            ['ESIC (Employer)',          fc(emp.oldESICEmployer),    fc(emp.newESICEmployer)],
+            ['Gratuity',                 fc(emp.oldGratuity),        fc(emp.newGratuity)],
+            ['Bonus Gross / Bonus Basic',fc(emp.oldBonusGross),      fc(emp.newBonusBasic)],
+            ['Impact in Bonus',          fc(emp.impactInBonus),      fc(emp.newImpactInBonus)],
+            ['Earned Leave (EL) / CL',   fc(emp.oldEarnedLeave),     fc(emp.newEarnedLeave)],
+            ['Medical',                  fc(emp.oldMedical||emp.medical||0), fc(emp.newMedical||emp.medical||0)],
+            ['Total Deductions',         fc(emp.oldTotalDeductions), fc(emp.newTotalDeductions)],
+            ['In-Hand Salary',           fc(emp.oldInHandSalary),    fc(emp.newInHandSalary)],
+            ['Monthly CTC',              fc(emp.oldMonthlyCTC),      fc(emp.newMonthlyCTC)],
+            ['Annually CTC',             fc(emp.oldAnnuallyCTC),     fc(emp.newAnnuallyCTC)],
         ];
 
         doc.autoTable({
@@ -843,7 +852,7 @@ async function downloadPDF() {
             },
             alternateRowStyles: { fillColor: [250, 250, 250] },
             didParseCell: (data) => {
-                if (data.row.index >= tableRows.length - 2) {
+                if (data.row.index >= tableRows.length - 3) {
                     data.cell.styles.fillColor = [210, 210, 210];
                     data.cell.styles.fontStyle = 'bold';
                 }
