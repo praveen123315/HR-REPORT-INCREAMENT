@@ -7,6 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -273,7 +274,7 @@
         .pdf-emp-info .info-item { display: flex; flex-direction: column; }
         .pdf-emp-info .info-label { font-size: 0.72em; color: #000; text-transform: uppercase; font-weight: 700; }
         .pdf-emp-info .info-value { font-weight: 700; color: #000; font-size: 0.95em; }
-        .pdf-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .pdf-compare-grid { display: block; margin-bottom: 10px; }
         .pdf-col-header { color: #fff; padding: 6px 10px; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 0.95em; text-align: center; }
         .pdf-col-header.old { background: #333; }
         .pdf-col-header.new { background: #111; }
@@ -542,9 +543,13 @@ function processEmployeeData(ws, range, startRow) {
             newGratuity:        cellNum(ws, col('GRATUITY NEW') || col('GRATUITY', 1), R),
             newBonusBasic:      cellNum(ws, col('BONUS BASIC NEW') || col('BONUS BASIC', 0) || col('BONUS GROSS', 1), R),
             newEarnedLeave:     cellNum(ws, col('EARNED LEAVE (EL) /CL NEW') || col('EARNED LEAVE (EL) /CL') || col('EARNED LEAVE (EL)', 1), R),
+            newActualSalary:    cellNum(ws, col('ACTUAL SALARYNEW') || col('ACTUAL SALARY NEW') || col('ACTUAL SALARY', 1), R),
+            newImpactInBonus:   cellNum(ws, col('IMPACT IN NEW BONUS') || col('IMPACT IN NEW BONUS', 0), R),
             newTotalDeductions: cellNum(ws, col('TOTAL DEDUCTIONS NEW') || col('TOTAL DEDUCTIONS', 1), R),
             newInHandSalary:    cellNum(ws, col('NEW IN HAND SALARY NEW') || col('NEW IN HAND SALARY') || col('IN-HAND SALARY', 1), R),
             newMonthlyCTC:      cellNum(ws, col('NEW MONTHLY CTC NEW') || col('NEW MONTHLY CTC') || col('MONTHLY CTC', 1), R),
+            oldMedical:         cellNum(ws, col('MEDICAL', 0), R),
+            newMedical:         cellNum(ws, col('MEDICAL', 1), R),
             medical:            cellNum(ws, col('MEDICAL'), R),
             differenceCTC:      cellNum(ws, col('DIFFRENCE CTC') ?? col('DIFFERENCE CTC'), R),
             incrementAmount:    cellNum(ws, col('INCREMENT AMOUNT'), R),
@@ -705,50 +710,33 @@ function buildIndividualPDF(emp) {
         <div class="pdf-summary-card"><div class="sc-label">Increment Amount</div><div class="sc-value">${fc(emp.incrementAmount)}</div></div>
         <div class="pdf-summary-card"><div class="sc-label">Hike %</div><div class="sc-value">${emp.hikePercentageRaw}%</div></div>
     </div>
-    <div class="pdf-compare-grid">
-        <div>
-            <div class="pdf-col-header old">📋 EXISTING SALARY STRUCTURE</div>
-            <table class="pdf-table">
-                <thead><tr><th>Component</th><th style="text-align:right;">Amount (₹)</th></tr></thead>
-                <tbody>
-                    <tr><td>BASIC SALARY OLD</td><td class="amount">${fc(emp.oldBasicSalary)}</td></tr>
-                    <tr><td>GROSS SALARYOLD</td><td class="amount">${fc(emp.oldGrossSalary)}</td></tr>
-                    <tr><td>ACTUAL SALARYOLD</td><td class="amount">${fc(emp.oldActualSalary)}</td></tr>
-                    <tr><td>EMPLOYER PF OLD</td><td class="amount">${fc(emp.oldEmployerPF)}</td></tr>
-                    <tr><td>EMPLOYEE PF OLD</td><td class="amount">${fc(emp.oldEmployeePF)}</td></tr>
-                    <tr><td>ESIC (EMPLOYEE)OLD</td><td class="amount">${fc(emp.oldESICEmployee)}</td></tr>
-                    <tr><td>ESIC (EMPLOYER)OLD</td><td class="amount">${fc(emp.oldESICEmployer)}</td></tr>
-                    <tr><td>GRATUITY OLD</td><td class="amount">${fc(emp.oldGratuity)}</td></tr>
-                    <tr><td>BONUS GROSS OLD</td><td class="amount">${fc(emp.oldBonusGross)}</td></tr>
-                    <tr><td>IMPACT IN BONUS</td><td class="amount">${fc(emp.impactInBonus)}</td></tr>
-                    <tr><td>EARNED LEAVE (EL)</td><td class="amount">${fc(emp.oldEarnedLeave)}</td></tr>
-                    <tr><td>TOTAL DEDUCTIONS</td><td class="amount">${fc(emp.oldTotalDeductions)}</td></tr>
-                    <tr class="highlight-row"><td><strong>IN-HAND SALARY</strong></td><td class="amount"><strong>${fc(emp.oldInHandSalary)}</strong></td></tr>
-                    <tr class="highlight-row"><td><strong>EXISTING MONTHLY CTC</strong></td><td class="amount"><strong>${fc(emp.oldMonthlyCTC)}</strong></td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div>
-            <div class="pdf-col-header new">✅ NEW SALARY STRUCTURE (After Increment)</div>
-            <table class="pdf-table">
-                <thead><tr><th>Component</th><th style="text-align:right;">Amount (₹)</th></tr></thead>
-                <tbody>
-                    <tr><td>BASIC SALARY NEW</td><td class="amount">${fc(emp.newBasicSalary)}</td></tr>
-                    <tr><td>GROSS SALARY NEW</td><td class="amount">${fc(emp.newGrossSalary)}</td></tr>
-                    <tr><td>EMPLOYER PF NEW</td><td class="amount">${fc(emp.newEmployerPF)}</td></tr>
-                    <tr><td>EMPLOYEE PF NEW</td><td class="amount">${fc(emp.newEmployeePF)}</td></tr>
-                    <tr><td>ESIC (EMPLOYEE) NEW</td><td class="amount">${fc(emp.newESICEmployee)}</td></tr>
-                    <tr><td>ESIC (EMPLOYER)NEW</td><td class="amount">${fc(emp.newESICEmployer)}</td></tr>
-                    <tr><td>GRATUITY NEW</td><td class="amount">${fc(emp.newGratuity)}</td></tr>
-                    <tr><td>BONUS BASIC NEW</td><td class="amount">${fc(emp.newBonusBasic)}</td></tr>
-                    <tr><td>EARNED LEAVE (EL) /CL NEW</td><td class="amount">${fc(emp.newEarnedLeave)}</td></tr>
-                    <tr><td>MEDICAL</td><td class="amount">${fc(emp.medical||0)}</td></tr>
-                    <tr><td>TOTAL DEDUCTIONS NEW</td><td class="amount">${fc(emp.newTotalDeductions)}</td></tr>
-                    <tr class="highlight-row"><td><strong>NEW IN HAND SALARY NEW</strong></td><td class="amount"><strong>${fc(emp.newInHandSalary)}</strong></td></tr>
-                    <tr class="highlight-row"><td><strong>NEW MONTHLY CTC NEW</strong></td><td class="amount"><strong>${fc(emp.newMonthlyCTC)}</strong></td></tr>
-                </tbody>
-            </table>
-        </div>
+    <div style="margin-bottom:10px;">
+        <table class="pdf-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th style="width:40%;background:#444;color:#fff;">Salary Component</th>
+                    <th style="text-align:right;background:#555;color:#fff;width:30%;">📋 OLD Salary (₹)</th>
+                    <th style="text-align:right;background:#111;color:#fff;width:30%;">✅ NEW Salary (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Basic Salary</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldBasicSalary)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newBasicSalary)}</td></tr>
+                <tr><td>Gross Salary</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldGrossSalary)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newGrossSalary)}</td></tr>
+                <tr><td>Actual Salary</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldActualSalary)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newActualSalary)}</td></tr>
+                <tr><td>Employer PF</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldEmployerPF)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newEmployerPF)}</td></tr>
+                <tr><td>Employee PF</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldEmployeePF)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newEmployeePF)}</td></tr>
+                <tr><td>ESIC (Employee)</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldESICEmployee)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newESICEmployee)}</td></tr>
+                <tr><td>ESIC (Employer)</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldESICEmployer)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newESICEmployer)}</td></tr>
+                <tr><td>Gratuity</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldGratuity)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newGratuity)}</td></tr>
+                <tr><td>Bonus</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldBonusGross)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newBonusBasic)}</td></tr>
+                <tr><td>Impact in Bonus</td><td class="amount" style="background:#f9f9f9;">${fc(emp.impactInBonus)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newImpactInBonus)}</td></tr>
+                <tr><td>Earned Leave (EL)</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldEarnedLeave)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newEarnedLeave)}</td></tr>
+                <tr><td>Medical</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldMedical||emp.medical||0)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newMedical||emp.medical||0)}</td></tr>
+                <tr><td>Total Deductions</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldTotalDeductions)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newTotalDeductions)}</td></tr>
+                <tr class="highlight-row"><td><strong>In-Hand Salary</strong></td><td class="amount" style="background:#e0e0e0;"><strong>${fc(emp.oldInHandSalary)}</strong></td><td class="amount" style="background:#c8f5d4;"><strong>${fc(emp.newInHandSalary)}</strong></td></tr>
+                <tr class="highlight-row"><td><strong>Monthly CTC</strong></td><td class="amount" style="background:#e0e0e0;"><strong>${fc(emp.oldMonthlyCTC)}</strong></td><td class="amount" style="background:#c8f5d4;"><strong>${fc(emp.newMonthlyCTC)}</strong></td></tr>
+            </tbody>
+        </table>
     </div>
     <div style="background:#ebebeb;border-left:3px solid #000;padding:6px 10px;border-radius:0 4px 4px 0;font-size:0.8em;color:#000;line-height:1.5;">
         <strong>Note:</strong> This increment is effective from the current financial year. All statutory deductions including PF, ESIC, and applicable taxes are as per current regulations. This document is confidential.
@@ -763,19 +751,119 @@ function closeModal() { document.getElementById('pdfModal').style.display = 'non
 function printPDF() { window.print(); }
 async function downloadPDF() {
     const { jsPDF } = window.jspdf;
-    const element = document.getElementById('pdfReport');
+    // Find which employee is currently shown
+    const reportHtml = document.getElementById('pdfReport').innerHTML;
+    const emp = employeeData.find(e => reportHtml.includes(e.empCode));
+    if (!emp) { alert('No employee data found.'); return; }
+
     try {
-        const canvas = await html2canvas(element, {
-            scale: 2, useCORS: true, logging: false,
-            backgroundColor: '#ffffff',
-            width: 794, height: 1123,
-            windowWidth: 794, windowHeight: 1123
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pW = doc.internal.pageSize.getWidth();
+        const margin = 14;
+        let y = 14;
+
+        // ── HEADER ──
+        doc.setFillColor(40, 40, 40);
+        doc.rect(0, 0, pW, 22, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+        doc.text('SALARY INCREMENT REPORT', pW / 2, 10, { align: 'center' });
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+        doc.text('Financial Year 2024-25  |  Confidential Document  |  HR Department', pW / 2, 17, { align: 'center' });
+        y = 28;
+
+        // ── EMPLOYEE INFO BOX ──
+        doc.setFillColor(235, 235, 235);
+        doc.roundedRect(margin, y, pW - margin * 2, 22, 2, 2, 'F');
+        doc.setTextColor(80, 80, 80); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+        const fields = [
+            ['EMPLOYEE CODE', emp.empCode],
+            ['EMPLOYEE NAME', emp.name],
+            ['DESIGNATION', emp.designation],
+            ['DEPARTMENT', emp.department],
+            ['DATE OF JOINING', formatDate(emp.doj)],
+            ['HIKE %', emp.hikePercentageRaw + '%'],
+        ];
+        const colW = (pW - margin * 2) / 3;
+        fields.forEach((f, i) => {
+            const col = i % 3; const row = Math.floor(i / 3);
+            const x = margin + col * colW + 4;
+            const fy = y + 5 + row * 11;
+            doc.setTextColor(100, 100, 100); doc.setFontSize(6.5);
+            doc.text(f[0], x, fy);
+            doc.setTextColor(20, 20, 20); doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
+            doc.text(String(f[1] || 'N/A'), x, fy + 4.5);
+            doc.setFont('helvetica', 'normal');
         });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p','mm','a4');
-        pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-        const emp = employeeData.find(e => document.getElementById('pdfReport').innerHTML.includes(e.empCode));
-        pdf.save(`Increment_${emp?emp.empCode:'EMP'}_${(emp?emp.name:'Report').replace(/\s+/g,'_')}.pdf`);
+        y += 28;
+
+        // ── SUMMARY CARDS ──
+        doc.setFillColor(220, 220, 220);
+        doc.roundedRect(margin, y, (pW - margin * 2) / 2 - 3, 14, 2, 2, 'F');
+        doc.roundedRect(margin + (pW - margin * 2) / 2 + 3, y, (pW - margin * 2) / 2 - 3, 14, 2, 2, 'F');
+        doc.setTextColor(80, 80, 80); doc.setFontSize(6.5);
+        doc.text('INCREMENT AMOUNT', margin + 4, y + 5);
+        doc.text('HIKE %', margin + (pW - margin * 2) / 2 + 7, y + 5);
+        doc.setTextColor(0, 0, 0); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+        doc.text(fc(emp.incrementAmount), margin + 4, y + 11);
+        doc.text(emp.hikePercentageRaw + '%', margin + (pW - margin * 2) / 2 + 7, y + 11);
+        doc.setFont('helvetica', 'normal');
+        y += 20;
+
+        // ── SALARY COMPARISON TABLE ──
+        const tableRows = [
+            ['Basic Salary',        fc(emp.oldBasicSalary),     fc(emp.newBasicSalary)],
+            ['Gross Salary',        fc(emp.oldGrossSalary),     fc(emp.newGrossSalary)],
+            ['Actual Salary',       fc(emp.oldActualSalary),    fc(emp.newActualSalary)],
+            ['Employer PF',         fc(emp.oldEmployerPF),      fc(emp.newEmployerPF)],
+            ['Employee PF',         fc(emp.oldEmployeePF),      fc(emp.newEmployeePF)],
+            ['ESIC (Employee)',     fc(emp.oldESICEmployee),    fc(emp.newESICEmployee)],
+            ['ESIC (Employer)',     fc(emp.oldESICEmployer),    fc(emp.newESICEmployer)],
+            ['Gratuity',            fc(emp.oldGratuity),        fc(emp.newGratuity)],
+            ['Bonus',               fc(emp.oldBonusGross),      fc(emp.newBonusBasic)],
+            ['Impact in Bonus',     fc(emp.impactInBonus),      fc(emp.newImpactInBonus)],
+            ['Earned Leave (EL)',   fc(emp.oldEarnedLeave),     fc(emp.newEarnedLeave)],
+            ['Medical',             fc(emp.oldMedical||emp.medical||0), fc(emp.newMedical||emp.medical||0)],
+            ['Total Deductions',    fc(emp.oldTotalDeductions), fc(emp.newTotalDeductions)],
+            ['In-Hand Salary',      fc(emp.oldInHandSalary),    fc(emp.newInHandSalary)],
+            ['Monthly CTC',         fc(emp.oldMonthlyCTC),      fc(emp.newMonthlyCTC)],
+        ];
+
+        doc.autoTable({
+            startY: y,
+            head: [['Salary Component', 'OLD Salary (₹)', 'NEW Salary (₹)']],
+            body: tableRows,
+            margin: { left: margin, right: margin },
+            styles: { fontSize: 8.5, cellPadding: 3, textColor: [20, 20, 20] },
+            headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+            columnStyles: {
+                0: { cellWidth: 'auto' },
+                1: { halign: 'right', fillColor: [248, 248, 248] },
+                2: { halign: 'right', fillColor: [240, 255, 244] },
+            },
+            alternateRowStyles: { fillColor: [250, 250, 250] },
+            didParseCell: (data) => {
+                if (data.row.index >= tableRows.length - 2) {
+                    data.cell.styles.fillColor = [210, 210, 210];
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            },
+        });
+
+        // ── NOTE + FOOTER ──
+        const finalY = doc.lastAutoTable.finalY + 5;
+        doc.setFillColor(235, 235, 235);
+        doc.rect(margin, finalY, pW - margin * 2, 10, 'F');
+        doc.setFontSize(7); doc.setTextColor(50, 50, 50);
+        doc.text('Note: This increment is effective from the current financial year. All statutory deductions (PF, ESIC, taxes) are as per current regulations. Confidential.', margin + 2, finalY + 4, { maxWidth: pW - margin * 2 - 4 });
+
+        const pageH = doc.internal.pageSize.getHeight();
+        doc.setDrawColor(0); doc.setLineWidth(0.3);
+        doc.line(margin, pageH - 12, pW - margin, pageH - 12);
+        doc.setFontSize(7); doc.setTextColor(100, 100, 100);
+        doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})}  |  HR Department  |  Confidential`, pW / 2, pageH - 7, { align: 'center' });
+
+        doc.save(`Increment_${emp.empCode}_${emp.name.replace(/\s+/g,'_')}.pdf`);
     } catch(err) { alert('PDF Error: ' + err.message); }
 }
 
@@ -862,25 +950,124 @@ function closeDeptModal() { document.getElementById('deptPdfModal').style.displa
 function printDeptPDF() { window.print(); }
 async function downloadDeptPDF() {
     const { jsPDF } = window.jspdf;
-    const element = document.getElementById('deptPdfReport');
+    const emps = allEmployees.filter(e => e.department === currentDeptForPDF);
+    if (!emps.length) { alert('No employee data for this department.'); return; }
+
     try {
-        // Temporarily stretch to actual content height for capture, then compress to A4
-        const naturalHeight = element.scrollHeight;
-        const canvas = await html2canvas(element, {
-            scale: 2, useCORS: true, logging: false,
-            backgroundColor: '#ffffff',
-            width: 794,
-            height: naturalHeight,
-            windowWidth: 794,
-            windowHeight: naturalHeight
+        const doc = new jsPDF('l', 'mm', 'a4'); // landscape for wide table
+        const pW = doc.internal.pageSize.getWidth();
+        const margin = 12;
+
+        const totalOldCTC    = emps.reduce((s,e)=>s+(e.oldMonthlyCTC||0),0);
+        const totalNewCTC    = emps.reduce((s,e)=>s+(e.newMonthlyCTC||0),0);
+        const totalInc       = emps.reduce((s,e)=>s+(e.incrementAmount||0),0);
+        const totalOldInHand = emps.reduce((s,e)=>s+(e.oldInHandSalary||0),0);
+        const totalNewInHand = emps.reduce((s,e)=>s+(e.newInHandSalary||0),0);
+        const totalOldBasic  = emps.reduce((s,e)=>s+(e.oldBasicSalary||0),0);
+        const totalNewBasic  = emps.reduce((s,e)=>s+(e.newBasicSalary||0),0);
+        const avgHike        = emps.reduce((s,e)=>s+(parseFloat(e.hikePercentageRaw)||0),0) / (emps.length||1);
+
+        // ── HEADER ──
+        doc.setFillColor(40, 40, 40);
+        doc.rect(0, 0, pW, 22, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+        doc.text('DEPARTMENT INCREMENT REPORT', pW / 2, 10, { align: 'center' });
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+        doc.text(`${currentDeptForPDF} Department  |  Financial Year 2024-25  |  Confidential  |  HR Department`, pW / 2, 17, { align: 'center' });
+
+        // ── META ROW ──
+        const mY = 26;
+        const mItems = [
+            ['Department', currentDeptForPDF],
+            ['Total Employees', String(emps.length)],
+            ['Average Hike', avgHike.toFixed(2) + '%'],
+            ['Total Increment', fc(totalInc)],
+        ];
+        const mW = (pW - margin * 2) / mItems.length;
+        doc.setFillColor(220, 220, 220);
+        doc.roundedRect(margin, mY, pW - margin * 2, 13, 2, 2, 'F');
+        mItems.forEach((m, i) => {
+            const x = margin + i * mW + 4;
+            doc.setTextColor(80, 80, 80); doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+            doc.text(m[0].toUpperCase(), x, mY + 5);
+            doc.setTextColor(10, 10, 10); doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
+            doc.text(m[1], x, mY + 11);
         });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p','mm','a4');
-        const pW = pdf.internal.pageSize.getWidth();
-        const pH = pdf.internal.pageSize.getHeight();
-        // Fit entire content into exactly ONE A4 page (no extra pages)
-        pdf.addImage(imgData, 'PNG', 0, 0, pW, pH);
-        pdf.save(`Dept_Report_${currentDeptForPDF.replace(/\s+/g,'_')}_${new Date().getFullYear()}.pdf`);
+
+        // ── TABLE ── (mirrors Excel columns exactly)
+        const tableHead = [[
+            '#', 'Emp Code', 'Employee Name', 'Designation',
+            'Old Basic', 'Old CTC', 'Old In-Hand',
+            'New Basic', 'New CTC', 'New In-Hand',
+            'Increment', 'Hike %'
+        ]];
+        const tableBody = emps.map((emp, i) => [
+            String(i + 1),
+            emp.empCode,
+            emp.name,
+            emp.designation,
+            fc(emp.oldBasicSalary),
+            fc(emp.oldMonthlyCTC),
+            fc(emp.oldInHandSalary),
+            fc(emp.newBasicSalary),
+            fc(emp.newMonthlyCTC),
+            fc(emp.newInHandSalary),
+            fc(emp.incrementAmount),
+            emp.hikePercentageRaw + '%',
+        ]);
+        // Total row
+        tableBody.push([
+            '', 'TOTAL', `(${emps.length} employees)`, '',
+            fc(totalOldBasic), fc(totalOldCTC), fc(totalOldInHand),
+            fc(totalNewBasic), fc(totalNewCTC), fc(totalNewInHand),
+            fc(totalInc), avgHike.toFixed(2) + '%'
+        ]);
+
+        doc.autoTable({
+            startY: mY + 17,
+            head: tableHead,
+            body: tableBody,
+            margin: { left: margin, right: margin },
+            styles: { fontSize: 7.5, cellPadding: 2.5, textColor: [20, 20, 20], overflow: 'linebreak' },
+            headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 7.5 },
+            columnStyles: {
+                0:  { halign: 'center', cellWidth: 8 },
+                1:  { cellWidth: 18 },
+                2:  { cellWidth: 35 },
+                3:  { cellWidth: 30 },
+                4:  { halign: 'right' },
+                5:  { halign: 'right' },
+                6:  { halign: 'right' },
+                7:  { halign: 'right' },
+                8:  { halign: 'right' },
+                9:  { halign: 'right' },
+                10: { halign: 'right' },
+                11: { halign: 'center', cellWidth: 14 },
+            },
+            alternateRowStyles: { fillColor: [248, 248, 250] },
+            didParseCell: (data) => {
+                // Style total row
+                if (data.row.index === tableBody.length - 1) {
+                    data.cell.styles.fillColor = [210, 210, 210];
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.fontSize = 8;
+                }
+            },
+        });
+
+        // ── NOTE + FOOTER on each page ──
+        const totalPages = doc.getNumberOfPages();
+        const pH = doc.internal.pageSize.getHeight();
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            doc.setDrawColor(0); doc.setLineWidth(0.3);
+            doc.line(margin, pH - 12, pW - margin, pH - 12);
+            doc.setFontSize(6.5); doc.setTextColor(100, 100, 100); doc.setFont('helvetica', 'normal');
+            doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})}  |  HR Department  |  ${currentDeptForPDF} Dept  |  Confidential  |  Page ${p} of ${totalPages}`, pW / 2, pH - 7, { align: 'center' });
+        }
+
+        doc.save(`Dept_Report_${currentDeptForPDF.replace(/\s+/g,'_')}_${new Date().getFullYear()}.pdf`);
     } catch(err) { alert('PDF Error: ' + err.message); }
 }
 
