@@ -436,9 +436,9 @@ function cellVal(ws, col, row) {
 }
 function cellNum(ws, col, row) {
     const v = cellVal(ws, col, row);
-    if (v === null) return 0;
+    if (v === null || v === undefined || v === '') return null;
     const n = parseFloat(String(v).replace(/,/g, ''));
-    return isNaN(n) ? 0 : n;
+    return isNaN(n) ? null : n;
 }
 function cellStr(ws, col, row) {
     const v = cellVal(ws, col, row);
@@ -666,7 +666,14 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
 });
 
 function fc(amount) {
-    return '₹' + (amount||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+    if (amount === null || amount === undefined) return '';
+    const n = amount || 0;
+    // Show as whole number if it's an integer, otherwise up to 2 decimal places
+    const isWhole = Number.isInteger(n) || Math.abs(n - Math.round(n)) < 0.005;
+    return '₹' + (isWhole ? Math.round(n) : n).toLocaleString('en-IN', {
+        minimumFractionDigits: isWhole ? 0 : 2,
+        maximumFractionDigits: 2
+    });
 }
 function formatDate(dateStr) {
     if (!dateStr) return 'N/A';
@@ -715,7 +722,7 @@ function buildIndividualPDF(emp) {
                     <tr><td>ESIC (EMPLOYER)OLD</td><td class="amount">${fc(emp.oldESICEmployer)}</td></tr>
                     <tr><td>GRATUITY OLD</td><td class="amount">${fc(emp.oldGratuity)}</td></tr>
                     <tr><td>BONUS GROSS OLD</td><td class="amount">${fc(emp.oldBonusGross)}</td></tr>
-                    <tr><td>IMPACT IN BONUS</td><td class="amount">${fc(emp.oldBonusGross - emp.newBonusBasic)}</td></tr>
+                    <tr><td>IMPACT IN BONUS</td><td class="amount">${fc(emp.impactInBonus)}</td></tr>
                     <tr><td>EARNED LEAVE (EL)</td><td class="amount">${fc(emp.oldEarnedLeave)}</td></tr>
                     <tr><td>TOTAL DEDUCTIONS</td><td class="amount">${fc(emp.oldTotalDeductions)}</td></tr>
                     <tr class="highlight-row"><td><strong>IN-HAND SALARY</strong></td><td class="amount"><strong>${fc(emp.oldInHandSalary)}</strong></td></tr>
