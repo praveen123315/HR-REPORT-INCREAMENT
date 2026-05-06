@@ -456,7 +456,25 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
         try {
             const data = new Uint8Array(event.target.result);
             const workbook = XLSX.read(data, {type:'array', cellDates:true});
-            const ws = workbook.Sheets[workbook.SheetNames[0]];
+            // Find the sheet that has employee data (EMP CODE column)
+            let ws = null;
+            for (const sheetName of workbook.SheetNames) {
+                const s = workbook.Sheets[sheetName];
+                const ref = s['!ref'];
+                if (!ref) continue;
+                const r = XLSX.utils.decode_range(ref);
+                let found = false;
+                for (let row = r.s.r; row <= Math.min(r.s.r+5, r.e.r) && !found; row++) {
+                    for (let c = r.s.c; c <= r.e.c && !found; c++) {
+                        const cell = s[XLSX.utils.encode_cell({r:row,c})];
+                        if (cell && cell.v && /EMP.?CODE|EMPLOYEE.?NAME/i.test(String(cell.v))) {
+                            ws = s; found = true;
+                        }
+                    }
+                }
+                if (ws) break;
+            }
+            if (!ws) ws = workbook.Sheets[workbook.SheetNames[0]];
             const range = XLSX.utils.decode_range(ws['!ref']);
             let headerRow = -1;
             for (let r = range.s.r; r <= Math.min(range.s.r+5, range.e.r); r++) {
@@ -471,10 +489,24 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
             for (let c = range.s.c; c <= range.e.c; c++) {
                 const cell = ws[XLSX.utils.encode_cell({r:headerRow,c})];
                 if (!cell || !cell.v) continue;
-                const key = String(cell.v).trim().toUpperCase();
+                // Store both raw key and normalized key (spaces normalized)
+                const rawKey = String(cell.v).trim().toUpperCase();
                 const letter = XLSX.utils.encode_col(c);
-                if (!colMap[key]) colMap[key] = [];
-                colMap[key].push(letter);
+                // Add with raw key
+                if (!colMap[rawKey]) colMap[rawKey] = [];
+                colMap[rawKey].push(letter);
+                // Also add normalized version (collapse multiple spaces, add space before OLD/NEW if missing)
+                const normKey = rawKey
+                    .replace(/\s+/g, ' ')
+                    .replace(/([A-Z\)])OLD\b/g, '$1 OLD')
+                    .replace(/([A-Z\)])NEW\b/g, '$1 NEW')
+                    .replace(/ANUALLY/g, 'ANNUALLY')
+                    .replace(/SALARYNEW/g, 'SALARY NEW')
+                    .replace(/SALARYOLD/g, 'SALARY OLD');
+                if (normKey !== rawKey) {
+                    if (!colMap[normKey]) colMap[normKey] = [];
+                    colMap[normKey].push(letter);
+                }
             }
             processEmployeeData(ws, range, headerRow + 1);
             document.getElementById('loading').style.display = 'none';
@@ -523,14 +555,14 @@ function processEmployeeData(ws, range, startRow) {
             doj: cellStr(ws, colAny('DATE OF JOINING (DOJ)', 'DATE OF JOINING', 'DOJ'), R),
             designation: cellStr(ws, colAny('DESIGNATION'), R),
             department: cellStr(ws, colAny('DEPARTMENT', 'DEPT'), R),
-            // OLD salary — exact header names
+            // OLD salary — supports exact Excel headers (with/without spaces, typos)
             oldBasicSalary:     cellNum(ws, colAny('BASIC SALARY OLD', 'BASIC SALARY (OLD)', 'OLD BASIC SALARY'), R),
-            oldGrossSalary:     cellNum(ws, colAny('GROSS SALARY OLD', 'GROSS SALARY (OLD)', 'OLD GROSS SALARY'), R),
-            oldActualSalary:    cellNum(ws, colAny('ACTUAL SALARY OLD', 'ACTUAL SALARY (OLD)', 'OLD ACTUAL SALARY'), R),
+            oldGrossSalary:     cellNum(ws, colAny('GROSS SALARY OLD', 'GROSS SALARY (OLD)', 'OLD GROSS SALARY', 'GROSS SALARYOLD'), R),
+            oldActualSalary:    cellNum(ws, colAny('ACTUAL SALARY OLD', 'ACTUAL SALARY (OLD)', 'OLD ACTUAL SALARY', 'ACTUAL SALARYOLD'), R),
             oldEmployerPF:      cellNum(ws, colAny('EMPLOYER PF OLD', 'EMPLOYER PF (OLD)', 'OLD EMPLOYER PF'), R),
             oldEmployeePF:      cellNum(ws, colAny('EMPLOYEE PF OLD', 'EMPLOYEE PF (OLD)', 'OLD EMPLOYEE PF'), R),
-            oldESICEmployee:    cellNum(ws, colAny('ESIC (EMPLOYEE) OLD', 'ESIC EMPLOYEE OLD', 'ESIC (EMP) OLD'), R),
-            oldESICEmployer:    cellNum(ws, colAny('ESIC (EMPLOYER) OLD', 'ESIC EMPLOYER OLD', 'ESIC (EMPR) OLD'), R),
+            oldESICEmployee:    cellNum(ws, colAny('ESIC (EMPLOYEE) OLD', 'ESIC EMPLOYEE OLD', 'ESIC (EMP) OLD', 'ESIC (EMPLOYEE)OLD'), R),
+            oldESICEmployer:    cellNum(ws, colAny('ESIC (EMPLOYER) OLD', 'ESIC EMPLOYER OLD', 'ESIC (EMPR) OLD', 'ESIC (EMPLOYER)OLD'), R),
             oldGratuity:        cellNum(ws, colAny('GRATUITY OLD', 'GRATUITY (OLD)', 'OLD GRATUITY'), R),
             oldBonusGross:      cellNum(ws, colAny('BONUS GROSS OLD', 'BONUS GROSS (OLD)', 'OLD BONUS GROSS', 'BONUS OLD'), R),
             impactInBonus:      cellNum(ws, colAny('IMPACT IN BONUS', 'IMPACT IN BONUS OLD', 'BONUS IMPACT'), R),
@@ -538,16 +570,16 @@ function processEmployeeData(ws, range, startRow) {
             oldTotalDeductions: cellNum(ws, colAny('TOTAL DEDUCTIONS', 'TOTAL DEDUCTIONS OLD', 'DEDUCTIONS OLD'), R),
             oldInHandSalary:    cellNum(ws, colAny('IN-HAND SALARY', 'IN HAND SALARY', 'INHAND SALARY', 'OLD IN HAND SALARY'), R),
             oldMonthlyCTC:      cellNum(ws, colAny('EXISTING MONTHLY CTC', 'MONTHLY CTC OLD', 'OLD MONTHLY CTC', 'CTC OLD'), R),
-            oldAnnuallyCTC:     cellNum(ws, colAny('ANNUALLY CTC OLD', 'ANNUAL CTC OLD', 'OLD ANNUAL CTC', 'ANNUALLY CTC'), R),
+            oldAnnuallyCTC:     cellNum(ws, colAny('ANNUALLY CTC OLD', 'ANNUAL CTC OLD', 'OLD ANNUAL CTC', 'ANUALLY CTC OLD', 'ANUALLY CTC', 'ANNUALLY CTC'), R),
             oldMedical:         cellNum(ws, col('MEDICAL', 0), R),
-            // NEW salary — exact header names
+            // NEW salary — supports exact Excel headers
             newBasicSalary:     cellNum(ws, colAny('BASIC SALARY NEW', 'BASIC SALARY (NEW)', 'NEW BASIC SALARY'), R),
             newGrossSalary:     cellNum(ws, colAny('GROSS SALARY NEW', 'GROSS SALARY (NEW)', 'NEW GROSS SALARY'), R),
-            newActualSalary:    cellNum(ws, colAny('ACTUAL SALARY NEW', 'ACTUAL SALARY (NEW)', 'NEW ACTUAL SALARY'), R),
+            newActualSalary:    cellNum(ws, colAny('ACTUAL SALARY NEW', 'ACTUAL SALARY (NEW)', 'NEW ACTUAL SALARY', 'ACTUAL SALARYNEW'), R),
             newEmployerPF:      cellNum(ws, colAny('EMPLOYER PF NEW', 'EMPLOYER PF (NEW)', 'NEW EMPLOYER PF'), R),
             newEmployeePF:      cellNum(ws, colAny('EMPLOYEE PF NEW', 'EMPLOYEE PF (NEW)', 'NEW EMPLOYEE PF'), R),
             newESICEmployee:    cellNum(ws, colAny('ESIC (EMPLOYEE) NEW', 'ESIC EMPLOYEE NEW', 'ESIC (EMP) NEW'), R),
-            newESICEmployer:    cellNum(ws, colAny('ESIC (EMPLOYER) NEW', 'ESIC EMPLOYER NEW', 'ESIC (EMPR) NEW'), R),
+            newESICEmployer:    cellNum(ws, colAny('ESIC (EMPLOYER) NEW', 'ESIC EMPLOYER NEW', 'ESIC (EMPR) NEW', 'ESIC (EMPLOYER)NEW'), R),
             newGratuity:        cellNum(ws, colAny('GRATUITY NEW', 'GRATUITY (NEW)', 'NEW GRATUITY'), R),
             newBonusBasic:      cellNum(ws, colAny('BONUS BASIC NEW', 'BONUS BASIC (NEW)', 'NEW BONUS BASIC', 'BONUS NEW'), R),
             newImpactInBonus:   cellNum(ws, colAny('IMPACT IN NEW BONUS', 'NEW IMPACT IN BONUS', 'IMPACT NEW BONUS'), R),
@@ -555,7 +587,7 @@ function processEmployeeData(ws, range, startRow) {
             newTotalDeductions: cellNum(ws, colAny('TOTAL DEDUCTIONS NEW', 'NEW TOTAL DEDUCTIONS', 'DEDUCTIONS NEW'), R),
             newInHandSalary:    cellNum(ws, colAny('NEW IN HAND SALARY NEW', 'NEW IN-HAND SALARY', 'NEW IN HAND SALARY', 'NEW INHAND SALARY'), R),
             newMonthlyCTC:      cellNum(ws, colAny('NEW MONTHLY CTC NEW', 'NEW MONTHLY CTC', 'MONTHLY CTC NEW'), R),
-            newAnnuallyCTC:     cellNum(ws, colAny('ANNUALLY CTC NEW', 'ANNUAL CTC NEW', 'NEW ANNUAL CTC'), R),
+            newAnnuallyCTC:     cellNum(ws, colAny('ANNUALLY CTC NEW', 'ANNUAL CTC NEW', 'NEW ANNUAL CTC', 'ANUALLY CTC NEW'), R),
             newMedical:         cellNum(ws, col('MEDICAL', 1), R),
             medical:            cellNum(ws, col('MEDICAL', 0), R),
             incrementAmount:    cellNum(ws, colAny('INCREMENT AMOUNT', 'INCREMENT', 'HIKE AMOUNT'), R),
