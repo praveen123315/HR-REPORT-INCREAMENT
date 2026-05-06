@@ -768,7 +768,7 @@ function buildIndividualPDF(emp) {
                 <tr><td>ESIC (Employer)</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldESICEmployer)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newESICEmployer)}</td></tr>
                 <tr><td>Gratuity</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldGratuity)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newGratuity)}</td></tr>
                 <tr><td>Bonus Gross / Bonus Basic</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldBonusGross)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newBonusBasic)}</td></tr>
-                <tr><td>Impact in Bonus</td><td class="amount" style="background:#f9f9f9;">${fc(emp.impactInBonus)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newImpactInBonus)}</td></tr>
+
                 <tr><td>Earned Leave (EL) / CL</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldEarnedLeave)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newEarnedLeave)}</td></tr>
                 <tr><td>Medical</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldMedical||emp.medical||0)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newMedical||emp.medical||0)}</td></tr>
                 <tr><td>Total Deductions</td><td class="amount" style="background:#f9f9f9;">${fc(emp.oldTotalDeductions)}</td><td class="amount" style="background:#f0fff4;">${fc(emp.newTotalDeductions)}</td></tr>
@@ -861,7 +861,7 @@ async function downloadPDF() {
             ['ESIC (Employer)',          fc(emp.oldESICEmployer),    fc(emp.newESICEmployer)],
             ['Gratuity',                 fc(emp.oldGratuity),        fc(emp.newGratuity)],
             ['Bonus Gross / Bonus Basic',fc(emp.oldBonusGross),      fc(emp.newBonusBasic)],
-            ['Impact in Bonus',          fc(emp.impactInBonus),      fc(emp.newImpactInBonus)],
+
             ['Earned Leave (EL) / CL',   fc(emp.oldEarnedLeave),     fc(emp.newEarnedLeave)],
             ['Medical',                  fc(emp.oldMedical||emp.medical||0), fc(emp.newMedical||emp.medical||0)],
             ['Total Deductions',         fc(emp.oldTotalDeductions), fc(emp.newTotalDeductions)],
